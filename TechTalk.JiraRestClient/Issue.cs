@@ -17,12 +17,12 @@ namespace TechTalk.JiraRestClient
         {
             foreach (var link in issue.fields.issuelinks)
             {
-                if (string.IsNullOrEmpty(link.inwardIssue.id))
+                if (link.inwardIssue.id == 0)
                 {
                     link.inwardIssue.id = issue.id;
                     link.inwardIssue.key = issue.key;
                 }
-                if (string.IsNullOrEmpty(link.outwardIssue.id))
+                if (link.outwardIssue.id == 0)
                 {
                     link.outwardIssue.id = issue.id;
                     link.outwardIssue.key = issue.key;

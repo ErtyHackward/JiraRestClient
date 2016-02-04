@@ -18,6 +18,8 @@ namespace TechTalk.JiraRestClient
         private readonly string password;
         private readonly JsonDeserializer deserializer;
         private readonly string baseApiUrl;
+        private readonly RestClient restClient;
+
         public JiraClient(string baseUrl, string username, string password)
         {
             this.username = username;
@@ -25,19 +27,44 @@ namespace TechTalk.JiraRestClient
             
             baseApiUrl = new Uri(new Uri(baseUrl), "rest/api/2/").ToString();
             deserializer = new JsonDeserializer();
+
+            restClient = new RestClient(baseApiUrl);
+
+            EstablishSession(baseUrl);
+        }
+
+        private void EstablishSession(string baseUrl)
+        {
+            var request = (HttpWebRequest)WebRequest.Create(baseUrl + "rest/auth/1/session/");
+
+            var postData = string.Format("{{ \"username\": \"{0}\", \"password\": \"{1}\" }}", username, password);
+
+            var data = Encoding.UTF8.GetBytes(postData);
+
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.ContentLength = data.Length;
+            request.CookieContainer = new CookieContainer();
+
+            using (var stream = request.GetRequestStream())
+            {
+                stream.Write(data, 0, data.Length);
+            }
+
+            request.GetResponse();
+            
+            restClient.CookieContainer = request.CookieContainer;
         }
 
         private RestRequest CreateRequest(Method method, String path)
         {
             var request = new RestRequest { Method = method, Resource = path, RequestFormat = DataFormat.Json };
-            request.AddHeader("Authorization", "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(String.Format("{0}:{1}", username, password))));
             return request;
         }
 
         private IRestResponse ExecuteRequest(RestRequest request)
         {
-            var client = new RestClient(baseApiUrl);
-            return client.Execute(request);
+            return restClient.Execute(request);
         }
 
         private void AssertStatus(IRestResponse response, HttpStatusCode status)
@@ -146,12 +173,12 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public Issue<TIssueFields> CreateIssue(String projectKey, String issueType, String summary)
+        public Issue<TIssueFields> CreateIssue(String projectKey, IssueType issueType, String summary)
         {
             return CreateIssue(projectKey, issueType, new TIssueFields { summary = summary });
         }
 
-        public Issue<TIssueFields> CreateIssue(String projectKey, String issueType, TIssueFields issueFields)
+        public Issue<TIssueFields> CreateIssue(String projectKey, IssueType issueType, TIssueFields issueFields)
         {
             try
             {
@@ -160,16 +187,21 @@ namespace TechTalk.JiraRestClient
 
                 var issueData = new Dictionary<string, object>();
                 issueData.Add("project", new { key = projectKey });
-                issueData.Add("issuetype", new { name = issueType });
+                issueData.Add("issuetype", new { issueType.id });
 
                 if (issueFields.summary != null)
                     issueData.Add("summary", issueFields.summary);
                 if (issueFields.description != null)
                     issueData.Add("description", issueFields.description);
-                if (issueFields.labels != null)
+                if (issueFields.labels != null && issueFields.labels.Count > 0)
                     issueData.Add("labels", issueFields.labels);
                 if (issueFields.timetracking != null)
                     issueData.Add("timetracking", new { originalEstimate = issueFields.timetracking.originalEstimate });
+                if (issueFields.assignee != null)
+                    issueData.Add("assignee", new { name = issueFields.assignee.name });
+                if (issueFields.parent != null)
+                    issueData.Add("parent", new { key = issueFields.parent.key });
+
 
                 var propertyList = typeof(TIssueFields).GetProperties().Where(p => p.Name.StartsWith("customfield_"));
                 foreach (var property in propertyList)
@@ -630,6 +662,26 @@ namespace TechTalk.JiraRestClient
             {
                 Trace.TraceError("GetServerInfo() error: {0}", ex);
                 throw new JiraClientException("Could not retrieve server information", ex);
+            }
+        }
+
+        public IEnumerable<Worklog> GetWorklogs(IssueRef issue)
+        {
+            try
+            {
+                var path = String.Format("issue/{0}/worklog", issue.id);
+                var request = CreateRequest(Method.GET, path);
+
+                var response = ExecuteRequest(request);
+                AssertStatus(response, HttpStatusCode.OK);
+
+                var data = deserializer.Deserialize<WorklogContainer>(response);
+                return data.worklogs ?? Enumerable.Empty<Worklog>();
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("GetWorklogs(issue) error: {0}", ex);
+                throw new JiraClientException("Could not load worklogs", ex);
             }
         }
     }

@@ -25,9 +25,9 @@ namespace TechTalk.JiraRestClient
         /// <summary>Returns the issue identified by the given ref</summary>
         Issue LoadIssue(IssueRef issueRef);
         /// <summary>Creates an issue of the specified type for the given project</summary>
-        Issue CreateIssue(String projectKey, String issueType, String summary);
+        Issue CreateIssue(String projectKey, IssueType issueType, String summary);
         /// <summary>Creates an issue of the specified type for the given project</summary>
-        Issue CreateIssue(String projectKey, String issueType, IssueFields issueFields);
+        Issue CreateIssue(String projectKey, IssueType issueType, IssueFields issueFields);
         /// <summary>Updates the given issue on the remote system</summary>
         Issue UpdateIssue(Issue issue);
         /// <summary>Deletes the given issue from the remote system</summary>
@@ -128,12 +128,12 @@ namespace TechTalk.JiraRestClient
             return Issue.From(client.LoadIssue(issueRef));
         }
 
-        public Issue CreateIssue(String projectKey, String issueType, String summary)
+        public Issue CreateIssue(String projectKey, IssueType issueType, String summary)
         {
             return Issue.From(client.CreateIssue(projectKey, issueType, summary));
         }
 
-        public Issue CreateIssue(String projectKey, String issueType, IssueFields issueFields)
+        public Issue CreateIssue(String projectKey, IssueType issueType, IssueFields issueFields)
         {
             return Issue.From(client.CreateIssue(projectKey, issueType, issueFields));
         }
@@ -241,6 +241,11 @@ namespace TechTalk.JiraRestClient
         public ServerInfo GetServerInfo()
         {
             return client.GetServerInfo();
+        }
+
+        public IEnumerable<Worklog> GetWorklogs(IssueRef issue)
+        {
+            return client.GetWorklogs(issue);
         }
     }
 

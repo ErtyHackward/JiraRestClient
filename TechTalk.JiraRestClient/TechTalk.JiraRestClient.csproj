@@ -31,7 +31,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="RestSharp">
-      <HintPath>..\packages\RestSharp.104.1\lib\net4-client\RestSharp.dll</HintPath>
+      <HintPath>..\..\JiraTest\packages\RestSharp.105.1.0\lib\net4-client\RestSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -60,11 +60,10 @@
     <Compile Include="Transition.cs" />
     <Compile Include="Timetracking.cs" />
     <Compile Include="TransitionsContainer.cs" />
+    <Compile Include="Worklog.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />

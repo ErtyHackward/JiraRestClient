@@ -21,6 +21,10 @@ namespace TechTalk.JiraRestClient
         public String description { get; set; }
         public Timetracking timetracking { get; set; }
         public Status status { get; set; }
+        public IssueRef parent { get; set; }
+        public string resolution { get; set; }
+        public DateTime resolutiondate { get; set; }
+
 
         public JiraUser reporter { get; set; }
         public JiraUser assignee { get; set; }

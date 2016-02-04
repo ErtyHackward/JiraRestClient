@@ -24,9 +24,9 @@ namespace TechTalk.JiraRestClient
         /// <summary>Returns the issue identified by the given ref</summary>
         Issue<TIssueFields> LoadIssue(IssueRef issueRef);
         /// <summary>Creates an issue of the specified type for the given project</summary>
-        Issue<TIssueFields> CreateIssue(String projectKey, String issueType, String summary);
+        Issue<TIssueFields> CreateIssue(String projectKey, IssueType issueType, String summary);
         /// <summary>Creates an issue of the specified type for the given project</summary>
-        Issue<TIssueFields> CreateIssue(String projectKey, String issueType, TIssueFields issueFields);
+        Issue<TIssueFields> CreateIssue(String projectKey, IssueType issueType, TIssueFields issueFields);
         /// <summary>Updates the given issue on the remote system</summary>
         Issue<TIssueFields> UpdateIssue(Issue<TIssueFields> issue);
         /// <summary>Deletes the given issue from the remote system</summary>
@@ -77,5 +77,7 @@ namespace TechTalk.JiraRestClient
 
         /// <summary>Returns information about the JIRA server</summary>
         ServerInfo GetServerInfo();
+
+        IEnumerable<Worklog> GetWorklogs(IssueRef issue);
     }
 }

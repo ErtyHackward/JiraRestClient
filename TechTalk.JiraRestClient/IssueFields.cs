@@ -23,7 +23,9 @@ namespace TechTalk.JiraRestClient
         public Status status { get; set; }
         public IssueRef parent { get; set; }
         public string resolution { get; set; }
-        public DateTime resolutiondate { get; set; }
+        public DateTime? resolutiondate { get; set; }
+        public Priority priority { get; set; }
+        public Project project { get; set; }
 
 
         public JiraUser reporter { get; set; }

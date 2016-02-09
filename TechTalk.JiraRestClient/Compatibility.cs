@@ -2,11 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace TechTalk.JiraRestClient
 {
     public interface IJiraClient : IDisposable
     {
+        CookieContainer SessionContainer { get; }
         /// <summary>Returns all issues for the given project</summary>
         IEnumerable<Issue> GetIssues(String projectKey);
         /// <summary>Returns all issues of the specified type for the given project</summary>
@@ -80,15 +83,19 @@ namespace TechTalk.JiraRestClient
         IEnumerable<IssueType> GetIssueTypes();
 
         /// <summary>Returns information about the JIRA server</summary>
-        ServerInfo GetServerInfo();
+        Task<ServerInfo> GetServerInfoAsync();
+
+        Task<bool> ImportSessionAsync(CookieContainer container);
     }
 
     public class JiraClient : IJiraClient
     {
+        public CookieContainer SessionContainer => client.SessionContainer;
+
         private readonly IJiraClient<IssueFields> client;
-        public JiraClient(string baseUrl, string username, string password)
+        public JiraClient(string baseUrl, string username, string password, int timeout = 10000)
         {
-            client = new JiraClient<IssueFields>(baseUrl, username, password);
+            client = new JiraClient<IssueFields>(baseUrl, username, password, timeout);
         }
 
         public IEnumerable<Issue> GetIssues(String projectKey)
@@ -243,9 +250,9 @@ namespace TechTalk.JiraRestClient
             return client.GetIssueTypes();
         }
 
-        public ServerInfo GetServerInfo()
+        public Task<ServerInfo> GetServerInfoAsync()
         {
-            return client.GetServerInfo();
+            return client.GetServerInfoAsync();
         }
 
         public IEnumerable<Worklog> GetWorklogs(IssueRef issue)
@@ -253,24 +260,29 @@ namespace TechTalk.JiraRestClient
             return client.GetWorklogs(issue);
         }
 
-        public IEnumerable<Project> GetProjects()
+        public Task<IEnumerable<Project>> GetProjectsAsync()
         {
-            return client.GetProjects();
+            return client.GetProjectsAsync();
         }
 
-        public IssueMeta GetCreateIssueMeta(string projectKey)
+        public Task<IssueMeta> GetCreateIssueMetaAsync(string projectKey)
         {
-            return client.GetCreateIssueMeta(projectKey);
+            return client.GetCreateIssueMetaAsync(projectKey);
         }
 
-        public JiraUser GetUser(string name)
+        public Task<JiraUser> GetUserAsync(string name)
         {
-            return client.GetUser(name);
+            return client.GetUserAsync(name);
         }
 
         public void Dispose()
         {
             client.Dispose();
+        }
+
+        public Task<bool> ImportSessionAsync(CookieContainer sessionContainer)
+        {
+            return client.ImportSessionAsync(sessionContainer);
         }
     }
 

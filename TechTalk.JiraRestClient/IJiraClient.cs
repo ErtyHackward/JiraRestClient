@@ -2,11 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace TechTalk.JiraRestClient
 {
     public interface IJiraClient<TIssueFields> : IDisposable where TIssueFields : IssueFields, new()
     {
+        CookieContainer SessionContainer { get; }
+
         /// <summary>Returns all issues for the given project</summary>
         IEnumerable<Issue<TIssueFields>> GetIssues(String projectKey);
         /// <summary>Returns all issues of the specified type for the given project</summary>
@@ -84,11 +88,13 @@ namespace TechTalk.JiraRestClient
         IEnumerable<IssueType> GetIssueTypes();
 
         /// <summary>Returns information about the JIRA server</summary>
-        ServerInfo GetServerInfo();
+        Task<ServerInfo> GetServerInfoAsync();
 
         IEnumerable<Worklog> GetWorklogs(IssueRef issue);
-        IEnumerable<Project> GetProjects();
-        IssueMeta GetCreateIssueMeta(string projectKey);
-        JiraUser GetUser(string name);
+        Task<IEnumerable<Project>> GetProjectsAsync();
+        Task<IssueMeta> GetCreateIssueMetaAsync(string projectKey);
+        Task<JiraUser> GetUserAsync(string name);
+
+        Task<bool> ImportSessionAsync(CookieContainer container);
     }
 }

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using RestSharp;
 using RestSharp.Deserializers;
 
@@ -20,19 +21,41 @@ namespace TechTalk.JiraRestClient
         private readonly JsonDeserializer deserializer;
         private readonly string baseApiUrl;
         private readonly RestClient restClient;
+        private readonly int _timeout;
 
-        public JiraClient(string baseUrl, string username, string password)
+        public CookieContainer SessionContainer => restClient.CookieContainer;
+
+        public JiraClient(string baseUrl, string username, string password, int timeout = 10000)
         {
             _baseUrl = baseUrl;
             this.username = username;
             this.password = password;
+            _timeout = timeout;
 
             baseApiUrl = new Uri(new Uri(baseUrl), "rest/api/2/").ToString();
             deserializer = new JsonDeserializer();
 
             restClient = new RestClient(baseApiUrl);
+        }
 
-            EstablishSession(baseUrl);
+        public async Task<bool> ImportSessionAsync(CookieContainer container)
+        {
+            if (restClient.CookieContainer != null)
+                throw new InvalidOperationException("Session was already established");
+
+            restClient.CookieContainer = container;
+
+            try
+            {
+                await GetServerInfoAsync();
+            }
+            catch (Exception x)
+            {
+                await EstablishSessionAsync(_baseUrl);
+                return false;
+            }
+            
+            return true;
         }
 
         private void EstablishSession(string baseUrl)
@@ -47,15 +70,39 @@ namespace TechTalk.JiraRestClient
             request.ContentType = "application/json";
             request.ContentLength = data.Length;
             request.CookieContainer = new CookieContainer();
-            request.Timeout = 10000;
+            request.Timeout = _timeout;
 
             using (var stream = request.GetRequestStream())
             {
                 stream.Write(data, 0, data.Length);
             }
 
-            using (var resp = request.GetResponse())
-                restClient.CookieContainer = request.CookieContainer;
+            var resp = request.GetResponse();
+            restClient.CookieContainer = request.CookieContainer;
+        }
+
+        private async Task EstablishSessionAsync(string baseUrl)
+        {
+            var request = (HttpWebRequest)WebRequest.Create(baseUrl + "rest/auth/1/session/");
+
+            var postData = string.Format("{{ \"username\": \"{0}\", \"password\": \"{1}\" }}", username, password);
+
+            var data = Encoding.UTF8.GetBytes(postData);
+
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.ContentLength = data.Length;
+            request.CookieContainer = new CookieContainer();
+            request.Timeout = _timeout;
+
+
+            using (var stream = await Task.Factory.FromAsync<Stream>(request.BeginGetRequestStream, request.EndGetRequestStream, null))
+            {
+                stream.Write(data, 0, data.Length);
+            }
+
+            var resp = await Task.Factory.FromAsync<WebResponse>(request.BeginGetResponse, request.EndGetResponse, null);
+            restClient.CookieContainer = request.CookieContainer;
         }
 
         public void Dispose()
@@ -68,22 +115,30 @@ namespace TechTalk.JiraRestClient
                 request.CookieContainer = restClient.CookieContainer;
 
                 var response = request.GetResponse();
-                
-
                 restClient.CookieContainer = null;
-
             }
         }
 
         private RestRequest CreateRequest(Method method, String path)
         {
-            var request = new RestRequest { Method = method, Resource = path, RequestFormat = DataFormat.Json, Timeout = 10000 };
+            var request = new RestRequest { Method = method, Resource = path, RequestFormat = DataFormat.Json, Timeout = _timeout };
             return request;
         }
 
         private IRestResponse ExecuteRequest(RestRequest request)
         {
+            if (restClient.CookieContainer == null)
+                EstablishSession(_baseUrl);
+
             return restClient.Execute(request);
+        }
+
+        private async Task<IRestResponse> ExecuteRequestAsync(RestRequest request)
+        {
+            if (restClient.CookieContainer == null)
+                await EstablishSessionAsync(_baseUrl);
+
+            return await restClient.ExecuteTaskAsync(request);
         }
 
         private void AssertStatus(IRestResponse response, HttpStatusCode status)
@@ -238,7 +293,7 @@ namespace TechTalk.JiraRestClient
                 if (issueFields.labels != null && issueFields.labels.Count > 0)
                     issueData.Add("labels", issueFields.labels);
                 if (issueFields.timetracking != null)
-                    issueData.Add("timetracking", new { issueFields.timetracking.originalEstimateSeconds });
+                    issueData.Add("timetracking", new { originalEstimate = TimeSpan.FromSeconds(issueFields.timetracking.originalEstimateSeconds).ToString(@"h\h\ m\m") });
                 if (issueFields.assignee != null)
                     issueData.Add("assignee", new { issueFields.assignee.name });
                 if (issueFields.parent != null)
@@ -688,14 +743,14 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public ServerInfo GetServerInfo()
+        public async Task<ServerInfo> GetServerInfoAsync()
         {
             try
             {
                 var request = CreateRequest(Method.GET, "serverInfo");
                 request.AddHeader("ContentType", "application/json");
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.OK);
 
                 return deserializer.Deserialize<ServerInfo>(response);
@@ -727,13 +782,13 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public IEnumerable<Project> GetProjects()
+        public async Task<IEnumerable<Project>> GetProjectsAsync()
         {
             try
             {
                 var request = CreateRequest(Method.GET, "project");
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.OK);
 
                 var data = deserializer.Deserialize<List<Project>>(response);
@@ -746,13 +801,13 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public IssueMeta GetCreateIssueMeta(string projectKey)
+        public async Task<IssueMeta> GetCreateIssueMetaAsync(string projectKey)
         {
             try
             {
                 var request = CreateRequest(Method.GET, "issue/createmeta?expand=projects.issuetypes.fields&projectKeys=" + projectKey);
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.OK);
 
                 var data = deserializer.Deserialize<IssueMeta>(response);
@@ -765,13 +820,13 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public JiraUser GetUser(string name)
+        public async Task<JiraUser> GetUserAsync(string name)
         {
             try
             {
                 var request = CreateRequest(Method.GET, "user?username=" + Uri.EscapeDataString(name));
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.OK);
 
                 var data = deserializer.Deserialize<JiraUser>(response);

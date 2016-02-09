@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace TechTalk.JiraRestClient
 {
-    public interface IJiraClient<TIssueFields> where TIssueFields : IssueFields, new()
+    public interface IJiraClient<TIssueFields> : IDisposable where TIssueFields : IssueFields, new()
     {
         /// <summary>Returns all issues for the given project</summary>
         IEnumerable<Issue<TIssueFields>> GetIssues(String projectKey);
@@ -87,5 +87,8 @@ namespace TechTalk.JiraRestClient
         ServerInfo GetServerInfo();
 
         IEnumerable<Worklog> GetWorklogs(IssueRef issue);
+        IEnumerable<Project> GetProjects();
+        IssueMeta GetCreateIssueMeta(string projectKey);
+        JiraUser GetUser(string name);
     }
 }

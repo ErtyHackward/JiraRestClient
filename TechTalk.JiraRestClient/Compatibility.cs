@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace TechTalk.JiraRestClient
 {
-    public interface IJiraClient
+    public interface IJiraClient : IDisposable
     {
         /// <summary>Returns all issues for the given project</summary>
         IEnumerable<Issue> GetIssues(String projectKey);
@@ -251,6 +251,26 @@ namespace TechTalk.JiraRestClient
         public IEnumerable<Worklog> GetWorklogs(IssueRef issue)
         {
             return client.GetWorklogs(issue);
+        }
+
+        public IEnumerable<Project> GetProjects()
+        {
+            return client.GetProjects();
+        }
+
+        public IssueMeta GetCreateIssueMeta(string projectKey)
+        {
+            return client.GetCreateIssueMeta(projectKey);
+        }
+
+        public JiraUser GetUser(string name)
+        {
+            return client.GetUser(name);
+        }
+
+        public void Dispose()
+        {
+            client.Dispose();
         }
     }
 

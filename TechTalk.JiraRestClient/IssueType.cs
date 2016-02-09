@@ -9,5 +9,10 @@ namespace TechTalk.JiraRestClient
         public string description { get; set; }
         public string iconUrl { get; set; }
         public bool subtask { get; set; }
+
+        public override string ToString()
+        {
+            return name;
+        }
     }
 }

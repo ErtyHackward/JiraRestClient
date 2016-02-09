@@ -14,6 +14,7 @@ namespace TechTalk.JiraRestClient
 
     public class JiraClient<TIssueFields> : IJiraClient<TIssueFields> where TIssueFields : IssueFields, new()
     {
+        private readonly string _baseUrl;
         private readonly string username;
         private readonly string password;
         private readonly JsonDeserializer deserializer;
@@ -22,6 +23,7 @@ namespace TechTalk.JiraRestClient
 
         public JiraClient(string baseUrl, string username, string password)
         {
+            _baseUrl = baseUrl;
             this.username = username;
             this.password = password;
 
@@ -45,20 +47,37 @@ namespace TechTalk.JiraRestClient
             request.ContentType = "application/json";
             request.ContentLength = data.Length;
             request.CookieContainer = new CookieContainer();
+            request.Timeout = 10000;
 
             using (var stream = request.GetRequestStream())
             {
                 stream.Write(data, 0, data.Length);
             }
 
-            request.GetResponse();
-            
-            restClient.CookieContainer = request.CookieContainer;
+            using (var resp = request.GetResponse())
+                restClient.CookieContainer = request.CookieContainer;
+        }
+
+        public void Dispose()
+        {
+            if (restClient.CookieContainer != null)
+            {
+                var request = (HttpWebRequest)WebRequest.Create(_baseUrl + "rest/auth/1/session");
+
+                request.Method = "DELETE";
+                request.CookieContainer = restClient.CookieContainer;
+
+                var response = request.GetResponse();
+                
+
+                restClient.CookieContainer = null;
+
+            }
         }
 
         private RestRequest CreateRequest(Method method, String path)
         {
-            var request = new RestRequest { Method = method, Resource = path, RequestFormat = DataFormat.Json };
+            var request = new RestRequest { Method = method, Resource = path, RequestFormat = DataFormat.Json, Timeout = 10000 };
             return request;
         }
 
@@ -219,11 +238,11 @@ namespace TechTalk.JiraRestClient
                 if (issueFields.labels != null && issueFields.labels.Count > 0)
                     issueData.Add("labels", issueFields.labels);
                 if (issueFields.timetracking != null)
-                    issueData.Add("timetracking", new { originalEstimate = issueFields.timetracking.originalEstimate });
+                    issueData.Add("timetracking", new { issueFields.timetracking.originalEstimateSeconds });
                 if (issueFields.assignee != null)
-                    issueData.Add("assignee", new { name = issueFields.assignee.name });
+                    issueData.Add("assignee", new { issueFields.assignee.name });
                 if (issueFields.parent != null)
-                    issueData.Add("parent", new { key = issueFields.parent.key });
+                    issueData.Add("parent", new { issueFields.parent.key });
 
 
                 var propertyList = typeof(TIssueFields).GetProperties().Where(p => p.Name.StartsWith("customfield_"));
@@ -705,6 +724,63 @@ namespace TechTalk.JiraRestClient
             {
                 Trace.TraceError("GetWorklogs(issue) error: {0}", ex);
                 throw new JiraClientException("Could not load worklogs", ex);
+            }
+        }
+
+        public IEnumerable<Project> GetProjects()
+        {
+            try
+            {
+                var request = CreateRequest(Method.GET, "project");
+
+                var response = ExecuteRequest(request);
+                AssertStatus(response, HttpStatusCode.OK);
+
+                var data = deserializer.Deserialize<List<Project>>(response);
+                return data ?? Enumerable.Empty<Project>();
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("GetProjects() error: {0}", ex);
+                throw new JiraClientException("Could not load projects", ex);
+            }
+        }
+
+        public IssueMeta GetCreateIssueMeta(string projectKey)
+        {
+            try
+            {
+                var request = CreateRequest(Method.GET, "issue/createmeta?expand=projects.issuetypes.fields&projectKeys=" + projectKey);
+
+                var response = ExecuteRequest(request);
+                AssertStatus(response, HttpStatusCode.OK);
+
+                var data = deserializer.Deserialize<IssueMeta>(response);
+                return data;
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("GetCreateIssueMeta(projectKey) error: {0}", ex);
+                throw new JiraClientException("Could not load create issue meta", ex);
+            }
+        }
+
+        public JiraUser GetUser(string name)
+        {
+            try
+            {
+                var request = CreateRequest(Method.GET, "user?username=" + Uri.EscapeDataString(name));
+
+                var response = ExecuteRequest(request);
+                AssertStatus(response, HttpStatusCode.OK);
+
+                var data = deserializer.Deserialize<JiraUser>(response);
+                return data;
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("GetUser(name) error: {0}", ex);
+                throw new JiraClientException("Could not load user", ex);
             }
         }
     }

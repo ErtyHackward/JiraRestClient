@@ -255,9 +255,9 @@ namespace TechTalk.JiraRestClient
             return client.GetServerInfoAsync();
         }
 
-        public IEnumerable<Worklog> GetWorklogs(IssueRef issue)
+        public Task<IEnumerable<Worklog>> GetWorklogsAsync(IssueRef issue)
         {
-            return client.GetWorklogs(issue);
+            return client.GetWorklogsAsync(issue);
         }
 
         public Task<IEnumerable<Project>> GetProjectsAsync()

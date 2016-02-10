@@ -22,7 +22,7 @@ namespace TechTalk.JiraRestClient
         public Timetracking timetracking { get; set; }
         public Status status { get; set; }
         public IssueRef parent { get; set; }
-        public string resolution { get; set; }
+        public Resolution resolution { get; set; }
         public DateTime? resolutiondate { get; set; }
         public DateTime? duedate { get; set; }
         public Priority priority { get; set; }
@@ -37,5 +37,6 @@ namespace TechTalk.JiraRestClient
         public List<Comment> comments { get; set; }
         public List<IssueLink> issuelinks { get; set; }
         public List<Attachment> attachment { get; set; }
+        public List<Issue> subtasks { get; set; }
     }
 }

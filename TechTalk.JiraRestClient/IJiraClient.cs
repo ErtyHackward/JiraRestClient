@@ -90,7 +90,7 @@ namespace TechTalk.JiraRestClient
         /// <summary>Returns information about the JIRA server</summary>
         Task<ServerInfo> GetServerInfoAsync();
 
-        IEnumerable<Worklog> GetWorklogs(IssueRef issue);
+        Task<IEnumerable<Worklog>> GetWorklogsAsync(IssueRef issue);
         Task<IEnumerable<Project>> GetProjectsAsync();
         Task<IssueMeta> GetCreateIssueMetaAsync(string projectKey);
         Task<JiraUser> GetUserAsync(string name);

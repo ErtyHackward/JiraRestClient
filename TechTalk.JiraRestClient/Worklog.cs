@@ -15,9 +15,13 @@ namespace TechTalk.JiraRestClient
 
         public string timeSpent { get; set; }
 
-        public string timeSpentSeconds { get; set; }
+        public int timeSpentSeconds { get; set; }
 
         public int id { get; set; }
+
+        public DateTime started { get; set; }
+        public DateTime created { get; set; }
+        public DateTime updated { get; set; }
     }
 
     internal class PagingContainer

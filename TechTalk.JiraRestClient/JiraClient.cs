@@ -766,14 +766,14 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public IEnumerable<Worklog> GetWorklogs(IssueRef issue)
+        public async Task<IEnumerable<Worklog>> GetWorklogsAsync(IssueRef issue)
         {
             try
             {
-                var path = String.Format("issue/{0}/worklog", issue.id);
+                var path = String.Format("issue/{0}/worklog", issue.JiraIdentifier);
                 var request = CreateRequest(Method.GET, path);
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.OK);
 
                 var data = deserializer.Deserialize<WorklogContainer>(response);

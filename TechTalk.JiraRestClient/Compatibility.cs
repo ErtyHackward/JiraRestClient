@@ -27,22 +27,22 @@ namespace TechTalk.JiraRestClient
         IEnumerable<Issue> EnumerateIssues(String projectKey, String issueType, String fields);
 
         /// <summary>Returns the issue identified by the given ref</summary>
-        Issue LoadIssue(String issueRef);
+        Task<Issue> LoadIssueAsync(String issueRef);
         /// <summary>Returns the issue identified by the given ref</summary>
-        Issue LoadIssue(IssueRef issueRef);
+        Task<Issue> LoadIssueAsync(IssueRef issueRef);
         /// <summary>Creates an issue of the specified type for the given project</summary>
-        Issue CreateIssue(String projectKey, IssueType issueType, String summary);
+        Task<Issue> CreateIssueAsync(String projectKey, IssueType issueType, String summary);
         /// <summary>Creates an issue of the specified type for the given project</summary>
-        Issue CreateIssue(String projectKey, IssueType issueType, IssueFields issueFields);
+        Task<Issue> CreateIssueAsync(String projectKey, IssueType issueType, IssueFields issueFields);
         /// <summary>Updates the given issue on the remote system</summary>
-        Issue UpdateIssue(Issue issue);
+        Task<Issue> UpdateIssueAsync(Issue issue);
         /// <summary>Deletes the given issue from the remote system</summary>
         void DeleteIssue(IssueRef issue);
 
         /// <summary>Returns all transitions available to the given issue</summary>
         IEnumerable<Transition> GetTransitions(IssueRef issue);
         /// <summary>Changes the state of the given issue as described by the transition</summary>
-        Issue TransitionIssue(IssueRef issue, Transition transition);
+        Task<Issue> TransitionIssueAsync(IssueRef issue, Transition transition);
 
         /// <summary>Returns all watchers for the given issue</summary>
         IEnumerable<JiraUser> GetWatchers(IssueRef issue);
@@ -55,18 +55,18 @@ namespace TechTalk.JiraRestClient
         void DeleteComment(IssueRef issue, Comment comment);
 
         /// <summary>Return all attachments for the given issue</summary>
-        IEnumerable<Attachment> GetAttachments(IssueRef issue);
+        Task<IEnumerable<Attachment>> GetAttachmentsAsync(IssueRef issue);
         /// <summary>Creates an attachment to the given issue</summary>
         Attachment CreateAttachment(IssueRef issue, Stream stream, String fileName);
         /// <summary>Deletes the given attachment</summary>
         void DeleteAttachment(Attachment attachment);
 
         /// <summary>Returns all links for the given issue</summary>
-        IEnumerable<IssueLink> GetIssueLinks(IssueRef issue);
+        Task<IEnumerable<IssueLink>> GetIssueLinksAsync(IssueRef issue);
         /// <summary>Returns the link between two issues of the given relation</summary>
-        IssueLink LoadIssueLink(IssueRef parent, IssueRef child, String relationship);
+        Task<IssueLink> LoadIssueLinkAsync(IssueRef parent, IssueRef child, String relationship);
         /// <summary>Creates a link between two issues with the given relation</summary>
-        IssueLink CreateIssueLink(IssueRef parent, IssueRef child, String relationship);
+        Task<IssueLink> CreateIssueLinkAsync(IssueRef parent, IssueRef child, String relationship);
         /// <summary>Removes the given link of two issues</summary>
         void DeleteIssueLink(IssueLink link);
 
@@ -130,29 +130,29 @@ namespace TechTalk.JiraRestClient
             return client.EnumerateIssues(projectKey, issueType, fields).Select(Issue.From);
         }
 
-        public Issue LoadIssue(String issueRef)
+        public async Task<Issue> LoadIssueAsync(String issueRef)
         {
-            return Issue.From(client.LoadIssue(issueRef));
+            return Issue.From(await client.LoadIssueAsync(issueRef));
         }
 
-        public Issue LoadIssue(IssueRef issueRef)
+        public async Task<Issue> LoadIssueAsync(IssueRef issueRef)
         {
-            return Issue.From(client.LoadIssue(issueRef));
+            return Issue.From(await client.LoadIssueAsync(issueRef));
         }
 
-        public Issue CreateIssue(String projectKey, IssueType issueType, String summary)
+        public async Task<Issue> CreateIssueAsync(String projectKey, IssueType issueType, String summary)
         {
-            return Issue.From(client.CreateIssue(projectKey, issueType, summary));
+            return Issue.From(await client.CreateIssueAsync(projectKey, issueType, summary));
         }
 
-        public Issue CreateIssue(String projectKey, IssueType issueType, IssueFields issueFields)
+        public async Task<Issue> CreateIssueAsync(String projectKey, IssueType issueType, IssueFields issueFields)
         {
-            return Issue.From(client.CreateIssue(projectKey, issueType, issueFields));
+            return Issue.From(await client.CreateIssueAsync(projectKey, issueType, issueFields));
         }
 
-        public Issue UpdateIssue(Issue issue)
+        public async Task<Issue> UpdateIssueAsync(Issue issue)
         {
-            return Issue.From(client.UpdateIssue(issue));
+            return Issue.From(await client.UpdateIssueAsync(issue));
         }
 
         public void DeleteIssue(IssueRef issue)
@@ -165,9 +165,9 @@ namespace TechTalk.JiraRestClient
             return client.GetTransitions(issue);
         }
 
-        public Issue TransitionIssue(IssueRef issue, Transition transition)
+        public async Task<Issue> TransitionIssueAsync(IssueRef issue, Transition transition)
         {
-            return Issue.From(client.TransitionIssue(issue, transition));
+            return Issue.From(await client.TransitionIssueAsync(issue, transition));
         }
 
         public IEnumerable<JiraUser> GetWatchers(IssueRef issue)
@@ -190,9 +190,9 @@ namespace TechTalk.JiraRestClient
             client.DeleteComment(issue, comment);
         }
 
-        public IEnumerable<Attachment> GetAttachments(IssueRef issue)
+        public async Task<IEnumerable<Attachment>> GetAttachmentsAsync(IssueRef issue)
         {
-            return client.GetAttachments(issue);
+            return await client.GetAttachmentsAsync(issue);
         }
 
         public Attachment CreateAttachment(IssueRef issue, Stream stream, string fileName)
@@ -205,19 +205,19 @@ namespace TechTalk.JiraRestClient
             client.DeleteAttachment(attachment);
         }
 
-        public IEnumerable<IssueLink> GetIssueLinks(IssueRef issue)
+        public Task<IEnumerable<IssueLink>> GetIssueLinksAsync(IssueRef issue)
         {
-            return client.GetIssueLinks(issue);
+            return client.GetIssueLinksAsync(issue);
         }
 
-        public IssueLink LoadIssueLink(IssueRef parent, IssueRef child, string relationship)
+        public Task<IssueLink> LoadIssueLinkAsync(IssueRef parent, IssueRef child, string relationship)
         {
-            return client.LoadIssueLink(parent, child, relationship);
+            return client.LoadIssueLinkAsync(parent, child, relationship);
         }
 
-        public IssueLink CreateIssueLink(IssueRef parent, IssueRef child, string relationship)
+        public Task<IssueLink> CreateIssueLinkAsync(IssueRef parent, IssueRef child, string relationship)
         {
-            return client.CreateIssueLink(parent, child, relationship);
+            return client.CreateIssueLinkAsync(parent, child, relationship);
         }
 
         public void DeleteIssueLink(IssueLink link)

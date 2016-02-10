@@ -242,19 +242,19 @@ namespace TechTalk.JiraRestClient
         }
 
 
-        public Issue<TIssueFields> LoadIssue(IssueRef issueRef)
+        public Task<Issue<TIssueFields>> LoadIssueAsync(IssueRef issueRef)
         {
-            return LoadIssue(issueRef.JiraIdentifier);
+            return LoadIssueAsync(issueRef.JiraIdentifier);
         }
 
-        public Issue<TIssueFields> LoadIssue(String issueRef)
+        public async Task<Issue<TIssueFields>> LoadIssueAsync(String issueRef)
         {
             try
             {
                 var path = String.Format("issue/{0}", issueRef);
                 var request = CreateRequest(Method.GET, path);
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.OK);
 
                 var issue = deserializer.Deserialize<Issue<TIssueFields>>(response);
@@ -270,12 +270,12 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public Issue<TIssueFields> CreateIssue(String projectKey, IssueType issueType, String summary)
+        public Task<Issue<TIssueFields>> CreateIssueAsync(String projectKey, IssueType issueType, String summary)
         {
-            return CreateIssue(projectKey, issueType, new TIssueFields { summary = summary });
+            return CreateIssueAsync(projectKey, issueType, new TIssueFields { summary = summary });
         }
 
-        public Issue<TIssueFields> CreateIssue(String projectKey, IssueType issueType, TIssueFields issueFields)
+        public async Task<Issue<TIssueFields>> CreateIssueAsync(String projectKey, IssueType issueType, TIssueFields issueFields)
         {
             try
             {
@@ -298,6 +298,8 @@ namespace TechTalk.JiraRestClient
                     issueData.Add("assignee", new { issueFields.assignee.name });
                 if (issueFields.parent != null)
                     issueData.Add("parent", new { issueFields.parent.key });
+                if (issueFields.duedate != null)
+                    issueData.Add("duedate", issueFields.duedate);
 
 
                 var propertyList = typeof(TIssueFields).GetProperties().Where(p => p.Name.StartsWith("customfield_"));
@@ -309,11 +311,11 @@ namespace TechTalk.JiraRestClient
 
                 request.AddBody(new { fields = issueData });
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.Created);
 
                 var issueRef = deserializer.Deserialize<IssueRef>(response);
-                return LoadIssue(issueRef);
+                return await LoadIssueAsync(issueRef);
             }
             catch (Exception ex)
             {
@@ -322,7 +324,7 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public Issue<TIssueFields> UpdateIssue(Issue<TIssueFields> issue)
+        public async Task<Issue<TIssueFields>> UpdateIssueAsync(Issue<TIssueFields> issue)
         {
             try
             {
@@ -335,10 +337,12 @@ namespace TechTalk.JiraRestClient
                     updateData.Add("summary", new[] { new { set = issue.fields.summary } });
                 if (issue.fields.description != null)
                     updateData.Add("description", new[] { new { set = issue.fields.description } });
-                if (issue.fields.labels != null)
+                if (issue.fields.labels?.Count > 0)
                     updateData.Add("labels", new[] { new { set = issue.fields.labels } });
                 if (issue.fields.timetracking != null)
-                    updateData.Add("timetracking", new[] { new { set = new { originalEstimate = issue.fields.timetracking.originalEstimate } } });
+                    updateData.Add("timetracking", new[] { new { set = new { originalEstimate = TimeSpan.FromSeconds(issue.fields.timetracking.originalEstimateSeconds).ToString(@"h\h\ m\m") } } });
+                if (issue.fields.duedate != null)
+                    updateData.Add("duedate", new[] { new { set = issue.fields.duedate.Value } });
 
                 var propertyList = typeof(TIssueFields).GetProperties().Where(p => p.Name.StartsWith("customfield_"));
                 foreach (var property in propertyList)
@@ -349,10 +353,10 @@ namespace TechTalk.JiraRestClient
 
                 request.AddBody(new { update = updateData });
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.NoContent);
 
-                return LoadIssue(issue);
+                return await LoadIssueAsync(issue);
             }
             catch (Exception ex)
             {
@@ -399,7 +403,7 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public Issue<TIssueFields> TransitionIssue(IssueRef issue, Transition transition)
+        public async Task<Issue<TIssueFields>> TransitionIssueAsync(IssueRef issue, Transition transition)
         {
             try
             {
@@ -414,10 +418,10 @@ namespace TechTalk.JiraRestClient
 
                 request.AddBody(update);
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.NoContent);
 
-                return LoadIssue(issue);
+                return await LoadIssueAsync(issue);
             }
             catch (Exception ex)
             {
@@ -506,9 +510,9 @@ namespace TechTalk.JiraRestClient
         }
 
 
-        public IEnumerable<Attachment> GetAttachments(IssueRef issue)
+        public async Task<IEnumerable<Attachment>> GetAttachmentsAsync(IssueRef issue)
         {
-            return LoadIssue(issue).fields.attachment;
+            return (await LoadIssueAsync(issue)).fields.attachment;
         }
 
         public Attachment CreateAttachment(IssueRef issue, Stream fileStream, String fileName)
@@ -551,16 +555,16 @@ namespace TechTalk.JiraRestClient
         }
 
 
-        public IEnumerable<IssueLink> GetIssueLinks(IssueRef issue)
+        public async Task<IEnumerable<IssueLink>> GetIssueLinksAsync(IssueRef issue)
         {
-            return LoadIssue(issue).fields.issuelinks;
+            return (await LoadIssueAsync(issue)).fields.issuelinks;
         }
 
-        public IssueLink LoadIssueLink(IssueRef parent, IssueRef child, String relationship)
+        public async Task<IssueLink> LoadIssueLinkAsync(IssueRef parent, IssueRef child, String relationship)
         {
             try
             {
-                var issue = LoadIssue(parent);
+                var issue = await LoadIssueAsync(parent);
                 var links = issue.fields.issuelinks
                     .Where(l => l.type.name == relationship)
                     .Where(l => l.inwardIssue.id == parent.id)
@@ -578,7 +582,7 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public IssueLink CreateIssueLink(IssueRef parent, IssueRef child, String relationship)
+        public async Task<IssueLink> CreateIssueLinkAsync(IssueRef parent, IssueRef child, String relationship)
         {
             try
             {
@@ -591,10 +595,10 @@ namespace TechTalk.JiraRestClient
                     outwardIssue = new { id = child.id }
                 });
 
-                var response = ExecuteRequest(request);
+                var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.Created);
 
-                return LoadIssueLink(parent, child, relationship);
+                return await LoadIssueLinkAsync(parent, child, relationship);
             }
             catch (Exception ex)
             {

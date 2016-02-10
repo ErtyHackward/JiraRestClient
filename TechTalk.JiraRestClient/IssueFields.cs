@@ -24,6 +24,7 @@ namespace TechTalk.JiraRestClient
         public IssueRef parent { get; set; }
         public string resolution { get; set; }
         public DateTime? resolutiondate { get; set; }
+        public DateTime? duedate { get; set; }
         public Priority priority { get; set; }
         public Project project { get; set; }
 

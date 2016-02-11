@@ -71,6 +71,7 @@ namespace TechTalk.JiraRestClient
             request.ContentLength = data.Length;
             request.CookieContainer = new CookieContainer();
             request.Timeout = _timeout;
+            request.ServicePoint.CloseConnectionGroup(null);
 
             using (var stream = request.GetRequestStream())
             {
@@ -94,14 +95,15 @@ namespace TechTalk.JiraRestClient
             request.ContentLength = data.Length;
             request.CookieContainer = new CookieContainer();
             request.Timeout = _timeout;
+            request.ServicePoint.CloseConnectionGroup(null);
 
 
-            using (var stream = request.GetRequestStream()) // await Task.Factory.FromAsync<Stream>(request.BeginGetRequestStream, request.EndGetRequestStream, null)
+            using (var stream = await Task.Factory.FromAsync<Stream>(request.BeginGetRequestStream, request.EndGetRequestStream, null))
             {
                 stream.Write(data, 0, data.Length);
             }
 
-            var resp = request.GetResponse();// await Task.Factory.FromAsync<WebResponse>(request.BeginGetResponse, request.EndGetResponse, null);
+            var resp = await Task.Factory.FromAsync<WebResponse>(request.BeginGetResponse, request.EndGetResponse, null);
             restClient.CookieContainer = request.CookieContainer;
         }
 
@@ -455,7 +457,7 @@ namespace TechTalk.JiraRestClient
         {
             try
             {
-                var path = String.Format("issue/{0}/comment", issue.id);
+                var path = String.Format("issue/{0}/comment", issue.JiraIdentifier);
                 var request = CreateRequest(Method.GET, path);
 
                 var response = ExecuteRequest(request);

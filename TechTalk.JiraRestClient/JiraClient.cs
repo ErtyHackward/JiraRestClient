@@ -51,16 +51,16 @@ namespace TechTalk.JiraRestClient
             }
             catch (Exception x)
             {
-                await EstablishSessionAsync(_baseUrl);
+                await EstablishSessionAsync();
                 return false;
             }
             
             return true;
         }
 
-        private void EstablishSession(string baseUrl)
+        public void EstablishSession()
         {
-            var request = (HttpWebRequest)WebRequest.Create(baseUrl + "rest/auth/1/session/");
+            var request = (HttpWebRequest)WebRequest.Create(_baseUrl + "rest/auth/1/session/");
 
             var postData = string.Format("{{ \"username\": \"{0}\", \"password\": \"{1}\" }}", username, password);
 
@@ -81,9 +81,9 @@ namespace TechTalk.JiraRestClient
             restClient.CookieContainer = request.CookieContainer;
         }
 
-        private async Task EstablishSessionAsync(string baseUrl)
+        public async Task EstablishSessionAsync()
         {
-            var request = (HttpWebRequest)WebRequest.Create(baseUrl + "rest/auth/1/session/");
+            var request = (HttpWebRequest)WebRequest.Create(_baseUrl + "rest/auth/1/session/");
 
             var postData = string.Format("{{ \"username\": \"{0}\", \"password\": \"{1}\" }}", username, password);
 
@@ -96,27 +96,27 @@ namespace TechTalk.JiraRestClient
             request.Timeout = _timeout;
 
 
-            using (var stream = await Task.Factory.FromAsync<Stream>(request.BeginGetRequestStream, request.EndGetRequestStream, null))
+            using (var stream = request.GetRequestStream()) // await Task.Factory.FromAsync<Stream>(request.BeginGetRequestStream, request.EndGetRequestStream, null)
             {
                 stream.Write(data, 0, data.Length);
             }
 
-            var resp = await Task.Factory.FromAsync<WebResponse>(request.BeginGetResponse, request.EndGetResponse, null);
+            var resp = request.GetResponse();// await Task.Factory.FromAsync<WebResponse>(request.BeginGetResponse, request.EndGetResponse, null);
             restClient.CookieContainer = request.CookieContainer;
         }
 
         public void Dispose()
         {
-            if (restClient.CookieContainer != null)
-            {
-                var request = (HttpWebRequest)WebRequest.Create(_baseUrl + "rest/auth/1/session");
+            //if (restClient.CookieContainer != null)
+            //{
+            //    var request = (HttpWebRequest)WebRequest.Create(_baseUrl + "rest/auth/1/session");
 
-                request.Method = "DELETE";
-                request.CookieContainer = restClient.CookieContainer;
+            //    request.Method = "DELETE";
+            //    request.CookieContainer = restClient.CookieContainer;
 
-                var response = request.GetResponse();
-                restClient.CookieContainer = null;
-            }
+            //    var response = request.GetResponse();
+            //    restClient.CookieContainer = null;
+            //}
         }
 
         private RestRequest CreateRequest(Method method, String path)
@@ -128,7 +128,7 @@ namespace TechTalk.JiraRestClient
         private IRestResponse ExecuteRequest(RestRequest request)
         {
             if (restClient.CookieContainer == null)
-                EstablishSession(_baseUrl);
+                EstablishSession();
 
             return restClient.Execute(request);
         }
@@ -136,7 +136,7 @@ namespace TechTalk.JiraRestClient
         private async Task<IRestResponse> ExecuteRequestAsync(RestRequest request)
         {
             if (restClient.CookieContainer == null)
-                await EstablishSessionAsync(_baseUrl);
+                await EstablishSessionAsync();
 
             return await restClient.ExecuteTaskAsync(request);
         }

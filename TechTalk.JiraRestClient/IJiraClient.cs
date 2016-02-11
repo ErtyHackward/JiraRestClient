@@ -96,5 +96,7 @@ namespace TechTalk.JiraRestClient
         Task<JiraUser> GetUserAsync(string name);
 
         Task<bool> ImportSessionAsync(CookieContainer container);
+
+        Task EstablishSessionAsync();
     }
 }

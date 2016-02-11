@@ -275,6 +275,11 @@ namespace TechTalk.JiraRestClient
             return client.GetUserAsync(name);
         }
 
+        public Task EstablishSessionAsync()
+        {
+            return client.EstablishSessionAsync();
+        }
+
         public void Dispose()
         {
             client.Dispose();

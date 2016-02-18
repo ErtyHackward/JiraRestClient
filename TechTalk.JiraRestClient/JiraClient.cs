@@ -148,7 +148,7 @@ namespace TechTalk.JiraRestClient
             if (response.ErrorException != null)
                 throw new JiraClientException("Transport level error: " + response.ErrorMessage, response.ErrorException);
             if (response.StatusCode != status)
-                throw new JiraClientException("JIRA returned wrong status: " + response.StatusDescription, response.Content);
+                throw new JiraClientException("JIRA returned wrong status: " + response.StatusDescription, response.Content, response.StatusCode);
         }
 
 
@@ -353,7 +353,10 @@ namespace TechTalk.JiraRestClient
                     if (value != null) updateData.Add(property.Name, new[] { new { set = value } });
                 }
 
-                request.AddBody(new { update = updateData });
+                if (issue.fields.assignee != null)
+                    request.AddBody(new { update = updateData, fields = new { assignee = new { issue.fields.assignee.name } } });
+                else
+                    request.AddBody(new { update = updateData });
 
                 var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.NoContent);

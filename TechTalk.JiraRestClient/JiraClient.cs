@@ -345,6 +345,8 @@ namespace TechTalk.JiraRestClient
                     updateData.Add("timetracking", new[] { new { set = new { originalEstimate = TimeSpan.FromSeconds(issue.fields.timetracking.originalEstimateSeconds).ToString(@"h\h\ m\m") } } });
                 if (issue.fields.duedate != null)
                     updateData.Add("duedate", new[] { new { set = issue.fields.duedate.Value } });
+                if (issue.fields.assignee != null)
+                    updateData.Add("assignee", new[] { new { set = new { issue.fields.assignee.name } } });
 
                 var propertyList = typeof(TIssueFields).GetProperties().Where(p => p.Name.StartsWith("customfield_"));
                 foreach (var property in propertyList)
@@ -353,10 +355,7 @@ namespace TechTalk.JiraRestClient
                     if (value != null) updateData.Add(property.Name, new[] { new { set = value } });
                 }
 
-                if (issue.fields.assignee != null)
-                    request.AddBody(new { update = updateData, fields = new { assignee = new { issue.fields.assignee.name } } });
-                else
-                    request.AddBody(new { update = updateData });
+                request.AddBody(new { update = updateData });
 
                 var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.NoContent);

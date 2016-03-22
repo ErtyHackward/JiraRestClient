@@ -13,7 +13,10 @@ namespace TechTalk.JiraRestClient
 {
     //JIRA REST API documentation: https://docs.atlassian.com/jira/REST/latest
 
-    public class JiraClient<TIssueFields> : IJiraClient<TIssueFields> where TIssueFields : IssueFields, new()
+    public class JiraClient<TIssueFields, TIssue> : 
+        IJiraClient<TIssueFields, TIssue> 
+        where TIssueFields : IssueFields, new() 
+        where TIssue : Issue<TIssueFields>, new()
     {
         private readonly string _baseUrl;
         private readonly string username;
@@ -38,24 +41,12 @@ namespace TechTalk.JiraRestClient
             restClient = new RestClient(baseApiUrl);
         }
 
-        public async Task<bool> ImportSessionAsync(CookieContainer container)
+        public void ImportSessionAsync(CookieContainer container)
         {
             if (restClient.CookieContainer != null)
                 throw new InvalidOperationException("Session was already established");
 
             restClient.CookieContainer = container;
-
-            try
-            {
-                await GetServerInfoAsync();
-            }
-            catch (Exception x)
-            {
-                await EstablishSessionAsync();
-                return false;
-            }
-            
-            return true;
         }
 
         public void EstablishSession()
@@ -152,22 +143,22 @@ namespace TechTalk.JiraRestClient
         }
 
 
-        public IEnumerable<Issue<TIssueFields>> GetIssues(String projectKey)
+        public IEnumerable<TIssue> GetIssues(String projectKey)
         {
             return EnumerateIssues(projectKey, null).ToArray();
         }
 
-        public IEnumerable<Issue<TIssueFields>> GetIssues(String projectKey, String issueType)
+        public IEnumerable<TIssue> GetIssues(String projectKey, String issueType)
         {
             return EnumerateIssues(projectKey, issueType).ToArray();
         }
 
-        public IEnumerable<Issue<TIssueFields>> EnumerateIssues(String projectKey)
+        public IEnumerable<TIssue> EnumerateIssues(String projectKey)
         {
             return EnumerateIssuesByQuery(CreateCommonJql(projectKey, null), null, 0);
         }
 
-        public IEnumerable<Issue<TIssueFields>> EnumerateIssues(String projectKey, String issueType)
+        public IEnumerable<TIssue> EnumerateIssues(String projectKey, String issueType)
         {
             return EnumerateIssuesByQuery(CreateCommonJql(projectKey, issueType), null, 0);
         }
@@ -183,7 +174,7 @@ namespace TechTalk.JiraRestClient
         }
 
         [Obsolete("This method is no longer supported and might be removed in a later release. Use EnumerateIssuesByQuery(jqlQuery, fields, startIndex).ToArray() instead")]
-        public IEnumerable<Issue<TIssueFields>> GetIssuesByQuery(String projectKey, String issueType, String jqlQuery)
+        public IEnumerable<TIssue> GetIssuesByQuery(String projectKey, String issueType, String jqlQuery)
         {
             var jql = CreateCommonJql(projectKey, issueType);
             if (!String.IsNullOrEmpty(jql) && !String.IsNullOrEmpty(jqlQuery))
@@ -192,7 +183,7 @@ namespace TechTalk.JiraRestClient
         }
 
         [Obsolete("This method is no longer supported and might be removed in a later release. Use EnumerateIssuesByQuery(jqlQuery, fields, startIndex) instead")]
-        public IEnumerable<Issue<TIssueFields>> EnumerateIssues(String projectKey, String issueType, String fields)
+        public IEnumerable<TIssue> EnumerateIssues(String projectKey, String issueType, String fields)
         {
             var fieldDef = fields == null ? null
                 : fields.Split(',').Select(str => (str ?? "").Trim())
@@ -200,7 +191,7 @@ namespace TechTalk.JiraRestClient
             return EnumerateIssuesByQuery(CreateCommonJql(projectKey, issueType), fieldDef, 0);
         }
 
-        public IEnumerable<Issue<TIssueFields>> EnumerateIssuesByQuery(String jqlQuery, String[] fields, Int32 startIndex)
+        public IEnumerable<TIssue> EnumerateIssuesByQuery(String jqlQuery, String[] fields, Int32 startIndex)
         {
             try
             {
@@ -213,7 +204,7 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        private IEnumerable<Issue<TIssueFields>> EnumerateIssuesByQueryInternal(String jqlQuery, String[] fields, Int32 startIndex)
+        private IEnumerable<TIssue> EnumerateIssuesByQueryInternal(String jqlQuery, String[] fields, Int32 startIndex)
         {
             var queryCount = 50;
             var resultCount = startIndex;
@@ -227,8 +218,8 @@ namespace TechTalk.JiraRestClient
                 var response = ExecuteRequest(request);
                 AssertStatus(response, HttpStatusCode.OK);
 
-                var data = deserializer.Deserialize<IssueContainer<TIssueFields>>(response);
-                var issues = data.issues ?? Enumerable.Empty<Issue<TIssueFields>>();
+                var data = deserializer.Deserialize<IssueContainer<TIssueFields, TIssue>>(response);
+                var issues = data.issues ?? Enumerable.Empty<TIssue>();
 
                 foreach (var item in issues) yield return item;
                 resultCount += issues.Count();
@@ -238,18 +229,18 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public IQueryable<Issue<TIssueFields>> QueryIssues()
+        public IQueryable<TIssue> QueryIssues()
         {
-            return new QueryableIssueCollection<TIssueFields>(this);
+            return new QueryableIssueCollection<TIssueFields, TIssue>(this);
         }
 
 
-        public Task<Issue<TIssueFields>> LoadIssueAsync(IssueRef issueRef)
+        public Task<TIssue> LoadIssueAsync(IssueRef issueRef)
         {
             return LoadIssueAsync(issueRef.JiraIdentifier);
         }
 
-        public async Task<Issue<TIssueFields>> LoadIssueAsync(String issueRef)
+        public async Task<TIssue> LoadIssueAsync(String issueRef)
         {
             try
             {
@@ -259,7 +250,7 @@ namespace TechTalk.JiraRestClient
                 var response = await ExecuteRequestAsync(request);
                 AssertStatus(response, HttpStatusCode.OK);
 
-                var issue = deserializer.Deserialize<Issue<TIssueFields>>(response);
+                var issue = deserializer.Deserialize<TIssue>(response);
                 issue.fields.comments = GetComments(issue).ToList();
                 issue.fields.watchers = GetWatchers(issue).ToList();
                 Issue.ExpandLinks(issue);
@@ -272,12 +263,12 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public Task<Issue<TIssueFields>> CreateIssueAsync(String projectKey, IssueType issueType, String summary)
+        public Task<TIssue> CreateIssueAsync(String projectKey, IssueType issueType, String summary)
         {
             return CreateIssueAsync(projectKey, issueType, new TIssueFields { summary = summary });
         }
 
-        public async Task<Issue<TIssueFields>> CreateIssueAsync(String projectKey, IssueType issueType, TIssueFields issueFields)
+        public async Task<TIssue> CreateIssueAsync(String projectKey, IssueType issueType, TIssueFields issueFields)
         {
             try
             {
@@ -326,7 +317,7 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public async Task<Issue<TIssueFields>> UpdateIssueAsync(Issue<TIssueFields> issue)
+        public async Task<TIssue> UpdateIssueAsync(TIssue issue)
         {
             try
             {
@@ -407,7 +398,7 @@ namespace TechTalk.JiraRestClient
             }
         }
 
-        public async Task<Issue<TIssueFields>> TransitionIssueAsync(IssueRef issue, Transition transition)
+        public async Task<TIssue> TransitionIssueAsync(IssueRef issue, Transition transition)
         {
             try
             {

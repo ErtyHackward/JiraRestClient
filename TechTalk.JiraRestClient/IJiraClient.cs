@@ -7,47 +7,49 @@ using System.Threading.Tasks;
 
 namespace TechTalk.JiraRestClient
 {
-    public interface IJiraClient<TIssueFields> : IDisposable where TIssueFields : IssueFields, new()
+    public interface IJiraClient<TIssueFields, TIssue> : IDisposable 
+        where TIssueFields : IssueFields, new()
+        where TIssue : Issue<TIssueFields>, new()
     {
         CookieContainer SessionContainer { get; }
 
         /// <summary>Returns all issues for the given project</summary>
-        IEnumerable<Issue<TIssueFields>> GetIssues(String projectKey);
+        IEnumerable<TIssue> GetIssues(String projectKey);
         /// <summary>Returns all issues of the specified type for the given project</summary>
-        IEnumerable<Issue<TIssueFields>> GetIssues(String projectKey, String issueType);
+        IEnumerable<TIssue> GetIssues(String projectKey, String issueType);
         /// <summary>Enumerates through all issues for the given project</summary>
-        IEnumerable<Issue<TIssueFields>> EnumerateIssues(String projectKey);
+        IEnumerable<TIssue> EnumerateIssues(String projectKey);
         /// <summary>Enumerates through all issues of the specified type for the given project</summary>
-        IEnumerable<Issue<TIssueFields>> EnumerateIssues(String projectKey, String issueType);
+        IEnumerable<TIssue> EnumerateIssues(String projectKey, String issueType);
         /// <summary>Enumerates through all issues filtered by the specified jqlQuery starting form the specified startIndex</summary>
-        IEnumerable<Issue<TIssueFields>> EnumerateIssuesByQuery(String jqlQuery, String[] fields, Int32 startIndex);
+        IEnumerable<TIssue> EnumerateIssuesByQuery(String jqlQuery, String[] fields, Int32 startIndex);
         /// <summary>Returns a query provider for this JIRA connection</summary>
-        IQueryable<Issue<TIssueFields>> QueryIssues();
+        IQueryable<TIssue> QueryIssues();
 
         /// <summary>Returns all issues of the given type and the given project filtered by the given JQL query</summary>
         [Obsolete("This method is no longer supported and might be removed in a later release. Use EnumerateIssuesByQuery(jqlQuery, fields, startIndex).ToArray() instead")]
-        IEnumerable<Issue<TIssueFields>> GetIssuesByQuery(String projectKey, String issueType, String jqlQuery);
+        IEnumerable<TIssue> GetIssuesByQuery(String projectKey, String issueType, String jqlQuery);
         /// <summary>Enumerates through all issues of the specified type for the given project, returning the given issue fields</summary>
         [Obsolete("This method is no longer supported and might be removed in a later release. Use EnumerateIssuesByQuery(jqlQuery, fields, startIndex) instead")]
-        IEnumerable<Issue<TIssueFields>> EnumerateIssues(String projectKey, String issueType, String fields);
+        IEnumerable<TIssue> EnumerateIssues(String projectKey, String issueType, String fields);
 
         /// <summary>Returns the issue identified by the given ref</summary>
-        Task<Issue<TIssueFields>> LoadIssueAsync(String issueRef);
+        Task<TIssue> LoadIssueAsync(String issueRef);
         /// <summary>Returns the issue identified by the given ref</summary>
-        Task<Issue<TIssueFields>> LoadIssueAsync(IssueRef issueRef);
+        Task<TIssue> LoadIssueAsync(IssueRef issueRef);
         /// <summary>Creates an issue of the specified type for the given project</summary>
-        Task<Issue<TIssueFields>> CreateIssueAsync(String projectKey, IssueType issueType, String summary);
+        Task<TIssue> CreateIssueAsync(String projectKey, IssueType issueType, String summary);
         /// <summary>Creates an issue of the specified type for the given project</summary>
-        Task<Issue<TIssueFields>> CreateIssueAsync(String projectKey, IssueType issueType, TIssueFields issueFields);
+        Task<TIssue> CreateIssueAsync(String projectKey, IssueType issueType, TIssueFields issueFields);
         /// <summary>Updates the given issue on the remote system</summary>
-        Task<Issue<TIssueFields>> UpdateIssueAsync(Issue<TIssueFields> issue);
+        Task<TIssue> UpdateIssueAsync(TIssue issue);
         /// <summary>Deletes the given issue from the remote system</summary>
         void DeleteIssue(IssueRef issue);
 
         /// <summary>Returns all transitions avilable to the given issue</summary>
         IEnumerable<Transition> GetTransitions(IssueRef issue);
         /// <summary>Changes the state of the given issue as described by the transition</summary>
-        Task<Issue<TIssueFields>> TransitionIssueAsync(IssueRef issue, Transition transition);
+        Task<TIssue> TransitionIssueAsync(IssueRef issue, Transition transition);
 
         /// <summary>Returns all watchers for the given issue</summary>
         IEnumerable<JiraUser> GetWatchers(IssueRef issue);
@@ -95,7 +97,7 @@ namespace TechTalk.JiraRestClient
         Task<IssueMeta> GetCreateIssueMetaAsync(string projectKey);
         Task<JiraUser> GetUserAsync(string name);
 
-        Task<bool> ImportSessionAsync(CookieContainer container);
+        void ImportSessionAsync(CookieContainer container);
 
         Task EstablishSessionAsync();
     }

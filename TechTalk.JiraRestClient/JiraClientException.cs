@@ -17,7 +17,14 @@ namespace TechTalk.JiraRestClient
             this.response = response;
         }
 
-        public JiraClientException(string message, Exception inner) : base(message, inner) { }
+        public JiraClientException(string message, Exception inner) : base(message, inner)
+        {
+            var ji = inner as JiraClientException;
+            if (ji != null)
+            {
+                response = ji.ErrorResponse;
+            }
+        }
         protected JiraClientException(SerializationInfo info, StreamingContext context) : base(info, context) { }
         public string ErrorResponse { get { return response; } }
 

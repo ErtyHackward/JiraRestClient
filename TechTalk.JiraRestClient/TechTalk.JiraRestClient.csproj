@@ -54,6 +54,7 @@
     <Compile Include="Project.cs" />
     <Compile Include="Resolution.cs" />
     <Compile Include="ServerInfo.cs" />
+    <Compile Include="Session.cs" />
     <Compile Include="WatchersContainer.cs" />
     <Compile Include="IJiraClient.cs" />
     <Compile Include="Issue.cs" />

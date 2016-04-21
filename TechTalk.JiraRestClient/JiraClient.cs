@@ -814,7 +814,7 @@ namespace TechTalk.JiraRestClient
             }
             catch (Exception ex)
             {
-                Trace.TraceError("GetCreateIssueMeta(projectKey) error: {0}", ex);
+                Trace.TraceError( nameof(GetCreateIssueMetaAsync) + "(projectKey) error: {0}", ex);
                 throw new JiraClientException("Could not load create issue meta", ex);
             }
         }
@@ -833,8 +833,48 @@ namespace TechTalk.JiraRestClient
             }
             catch (Exception ex)
             {
-                Trace.TraceError("GetUser(name) error: {0}", ex);
+                Trace.TraceError(nameof(GetUserAsync) + "(name) error: {0}", ex);
                 throw new JiraClientException("Could not load user", ex);
+            }
+        }
+
+        public async Task<Session> GetSessionAsync()
+        {
+            try
+            {
+                var request = CreateRequest(Method.GET, "session");
+
+                var response = await ExecuteRequestAsync(request);
+                AssertStatus(response, HttpStatusCode.OK);
+
+                var data = deserializer.Deserialize<Session>(response);
+                return data;
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError(nameof(GetSessionAsync) + "() error: {0}", ex);
+                throw new JiraClientException("Could not load session info", ex);
+            }
+        }
+
+        public async Task<List<JiraUser>> FindUsersAsync(string userName, int startAt = 0, int maxResults = 50)
+        {
+            try
+            {
+                var path = string.Format("user/search?username={0}&startat={1}&maxresults={2}",
+                    Uri.EscapeDataString(userName), startAt, maxResults);
+                var request = CreateRequest(Method.GET, path);
+
+                var response = await ExecuteRequestAsync(request);
+                AssertStatus(response, HttpStatusCode.OK);
+
+                var data = deserializer.Deserialize<List<JiraUser>>(response);
+                return data;
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError(nameof(FindUsersAsync) + "() error: {0}", ex);
+                throw new JiraClientException("Could not load user search results", ex);
             }
         }
     }

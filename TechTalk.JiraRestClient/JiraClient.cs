@@ -26,6 +26,16 @@ namespace TechTalk.JiraRestClient
         private readonly RestClient restClient;
         private readonly int _timeout;
 
+        /// <summary>
+        /// Occurs when request is finished
+        /// </summary>
+        public event EventHandler<RequestEventArgs> RequestComplete;
+        
+        protected virtual void OnRequest(RequestEventArgs e)
+        {
+            RequestComplete?.Invoke(this, e);
+        }
+
         public CookieContainer SessionContainer => restClient.CookieContainer;
 
         public JiraClient(string baseUrl, string username, string password, int timeout = 10000)
@@ -123,7 +133,16 @@ namespace TechTalk.JiraRestClient
             if (restClient.CookieContainer == null)
                 EstablishSession();
 
-            return restClient.Execute(request);
+            var response = restClient.Execute(request);
+
+            OnRequest(new RequestEventArgs
+            {
+                Uri = restClient.BuildUri(request),
+                Request = request,
+                Response = response
+            });
+            
+            return response;
         }
 
         private async Task<IRestResponse> ExecuteRequestAsync(RestRequest request)
@@ -131,7 +150,15 @@ namespace TechTalk.JiraRestClient
             if (restClient.CookieContainer == null)
                 await EstablishSessionAsync();
 
-            return await restClient.ExecuteTaskAsync(request);
+            var response = await restClient.ExecuteTaskAsync(request);
+            
+            OnRequest(new RequestEventArgs {
+                Uri = restClient.BuildUri(request),
+                Request = request,
+                Response = response
+            } );
+
+            return response;
         }
 
         private void AssertStatus(IRestResponse response, HttpStatusCode status)
@@ -286,7 +313,7 @@ namespace TechTalk.JiraRestClient
                 if (issueFields.labels != null && issueFields.labels.Count > 0)
                     issueData.Add("labels", issueFields.labels);
                 if (issueFields.timetracking != null)
-                    issueData.Add("timetracking", new { originalEstimate = TimeSpan.FromSeconds(issueFields.timetracking.originalEstimateSeconds).ToString(@"h\h\ m\m") });
+                    issueData.Add("timetracking", new { originalEstimate = TimeSpan.FromSeconds(issueFields.timetracking.originalEstimateSeconds).TotalMinutes + "m" });
                 if (issueFields.assignee != null)
                     issueData.Add("assignee", new { issueFields.assignee.name });
                 if (issueFields.parent != null)
@@ -333,7 +360,7 @@ namespace TechTalk.JiraRestClient
                 if (issue.fields.labels?.Count > 0)
                     updateData.Add("labels", new[] { new { set = issue.fields.labels } });
                 if (issue.fields.timetracking != null)
-                    updateData.Add("timetracking", new[] { new { set = new { originalEstimate = TimeSpan.FromSeconds(issue.fields.timetracking.originalEstimateSeconds).ToString(@"h\h\ m\m") } } });
+                    updateData.Add("timetracking", new[] { new { set = new { originalEstimate = TimeSpan.FromSeconds(issue.fields.timetracking.originalEstimateSeconds).TotalMinutes + "m" } } });
                 if (issue.fields.duedate != null)
                     updateData.Add("duedate", new[] { new { set = issue.fields.duedate.Value } });
                 if (issue.fields.assignee != null)
@@ -877,5 +904,12 @@ namespace TechTalk.JiraRestClient
                 throw new JiraClientException("Could not load user search results", ex);
             }
         }
+    }
+
+    public class RequestEventArgs : EventArgs
+    {
+        public Uri Uri { get; set; }
+        public RestRequest Request { get; set; }
+        public IRestResponse Response { get; set; }
     }
 }

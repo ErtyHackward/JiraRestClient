@@ -40,6 +40,8 @@ namespace TechTalk.JiraRestClient
 
         public JiraClient(string baseUrl, string username, string password, int timeout = 10000)
         {
+            if (!baseUrl.EndsWith("/"))
+                baseUrl += "/";
             _baseUrl = baseUrl;
             this.username = username;
             this.password = password;

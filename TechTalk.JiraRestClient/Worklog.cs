@@ -24,14 +24,14 @@ namespace TechTalk.JiraRestClient
         public DateTime updated { get; set; }
     }
 
-    internal class PagingContainer
+    public class PagingContainer
     {
         public int startAt { get; set; }
         public int maxResults { get; set; }
         public int total { get; set; }
     }
 
-    internal class WorklogContainer : PagingContainer
+    public class WorklogContainer : PagingContainer
     {
         public List<Worklog> worklogs { get; set; }
     }

@@ -15,6 +15,7 @@ namespace TechTalk.JiraRestClient
             issuelinks = new List<IssueLink>();
             attachment = new List<Attachment>();
             watchers = new List<JiraUser>();
+            worklog = new WorklogContainer();
         }
 
         public String summary { get; set; }
@@ -38,5 +39,6 @@ namespace TechTalk.JiraRestClient
         public List<IssueLink> issuelinks { get; set; }
         public List<Attachment> attachment { get; set; }
         public List<Issue> subtasks { get; set; }
+        public WorklogContainer worklog { get; set; }
     }
 }
